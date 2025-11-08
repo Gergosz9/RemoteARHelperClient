@@ -432,8 +432,6 @@ MonoBehaviour:
   enableLogging: 1
   roomMeshController: {fileID: 153880465}
   roomMeshEvent: {fileID: 153880464}
-  exportOriginalMesh: 1
-  exportProcessedMesh: 1
 --- !u!1 &153880463
 GameObject:
   m_ObjectHideFlags: 0

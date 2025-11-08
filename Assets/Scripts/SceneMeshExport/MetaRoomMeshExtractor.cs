@@ -141,24 +141,27 @@ public class MetaRoomMeshExtractor : MonoBehaviour
         obj.AppendLine($"# Has Colors: {mesh.colors.Length > 0}");
         obj.AppendLine($"# Has Normals: {mesh.normals.Length > 0}");
         obj.AppendLine($"# Has UVs: {mesh.uv.Length > 0}");
+        obj.AppendLine($"# Coordinate System: Fixed for OBJ format (Z-flipped)");
         obj.AppendLine();
 
         obj.AppendLine($"o RoomMesh");
 
-        // Write vertices (transform to world space)
+        // Write vertices (transform to world space and flip Z for OBJ format)
         foreach (var vertex in mesh.vertices)
         {
             Vector3 worldVertex = meshTransform.TransformPoint(vertex);
-            obj.AppendLine($"v {worldVertex.x:F6} {worldVertex.y:F6} {worldVertex.z:F6}");
+            // Flip Z-axis to convert from Unity's left-handed to OBJ's right-handed coordinate system
+            obj.AppendLine($"v {worldVertex.x:F6} {worldVertex.y:F6} {-worldVertex.z:F6}");
         }
 
-        // Write normals (transform to world space)
+        // Write normals (transform to world space and flip Z)
         if (mesh.normals.Length > 0)
         {
             foreach (var normal in mesh.normals)
             {
                 Vector3 worldNormal = meshTransform.TransformDirection(normal).normalized;
-                obj.AppendLine($"vn {worldNormal.x:F6} {worldNormal.y:F6} {worldNormal.z:F6}");
+                // Flip Z-axis for normals as well
+                obj.AppendLine($"vn {worldNormal.x:F6} {worldNormal.y:F6} {-worldNormal.z:F6}");
             }
         }
 
@@ -171,29 +174,30 @@ public class MetaRoomMeshExtractor : MonoBehaviour
             }
         }
 
-        // Write faces
+        // Write faces (reverse winding order to fix inside-out faces)
         for (int i = 0; i < mesh.triangles.Length; i += 3)
         {
             int v1 = mesh.triangles[i] + 1;
             int v2 = mesh.triangles[i + 1] + 1;
             int v3 = mesh.triangles[i + 2] + 1;
 
+            // Reverse triangle winding order (v1, v3, v2 instead of v1, v2, v3)
             if (mesh.normals.Length > 0 && mesh.uv.Length > 0)
             {
-                obj.AppendLine($"f {v1}/{v1}/{v1} {v2}/{v2}/{v2} {v3}/{v3}/{v3}");
+                obj.AppendLine($"f {v1}/{v1}/{v1} {v3}/{v3}/{v3} {v2}/{v2}/{v2}");
             }
             else if (mesh.normals.Length > 0)
             {
-                obj.AppendLine($"f {v1}//{v1} {v2}//{v2} {v3}//{v3}");
+                obj.AppendLine($"f {v1}//{v1} {v3}//{v3} {v2}//{v2}");
             }
             else
             {
-                obj.AppendLine($"f {v1} {v2} {v3}");
+                obj.AppendLine($"f {v1} {v3} {v2}");
             }
         }
 
         File.WriteAllText(path, obj.ToString());
-        Log($"?? OBJ exported to: {path}");
+        Log($"📁 OBJ exported to: {path}");
     }
 
     #region Manual Extraction Methods
