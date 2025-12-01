@@ -32,6 +32,10 @@ public class MetaRoomMeshExtractor : MonoBehaviour
     [Tooltip("RoomMeshEvent component (will be found automatically)")]
     public RoomMeshEvent roomMeshEvent;
 
+    [Header("Networking (Optional)")]
+    [Tooltip("FileSender component for network transmission (optional)")]
+    public FileSender fileSender;
+
     private MeshFilter extractedMeshFilter;
     private bool hasExtracted = false;
 
@@ -198,6 +202,20 @@ public class MetaRoomMeshExtractor : MonoBehaviour
 
         File.WriteAllText(path, obj.ToString());
         Log($"📁 OBJ exported to: {path}");
+        SendObj(path);
+    }
+
+    private void SendObj(string filePath)
+    {
+        if (fileSender != null)
+        {
+            Log("Sending OBJ file over network...");
+            fileSender.SendFileToAll(filePath);
+        }
+        else
+        {
+            Log("FileSender component not assigned, skipping network send.");
+        }
     }
 
     #region Manual Extraction Methods
