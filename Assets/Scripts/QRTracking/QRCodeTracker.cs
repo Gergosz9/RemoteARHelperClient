@@ -1,7 +1,7 @@
+using Assets.Scripts.QRTracking;
 using Meta.XR.MRUtilityKit;
 using System.Collections.Generic;
 using TMPro;
-using Unity.XR.CoreUtils;
 using UnityEngine;
 
 public class QRCodeTracker : MonoBehaviour
@@ -10,8 +10,12 @@ public class QRCodeTracker : MonoBehaviour
     private MRUK MRUtilityKit;
     [SerializeField]
     private GameObject QRCodePrefab;
+    [SerializeField]
+    private PivotManager pivotManager;
+    [SerializeField]
+    private bool autoAnchorQRObjects = true;
 
-    private Dictionary<MRUKTrackable, GameObject> trackedQRCodes = new Dictionary<MRUKTrackable, GameObject>();
+    public Dictionary<MRUKTrackable, GameObject> trackedQRCodes = new Dictionary<MRUKTrackable, GameObject>();
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -19,6 +23,11 @@ public class QRCodeTracker : MonoBehaviour
         if (MRUtilityKit == null)
         {
             MRUtilityKit = FindFirstObjectByType<MRUK>();
+        }
+
+        if (pivotManager == null)
+        {
+            pivotManager = FindFirstObjectByType<Assets.Scripts.QRTracking.PivotManager>();
         }
 
         MRUtilityKit.SceneSettings.TrackableAdded.AddListener(OnTrackableAdded);
@@ -48,6 +57,12 @@ public class QRCodeTracker : MonoBehaviour
                 if (tmpComponent != null)
                 {
                     tmpComponent.text = qrPayload;
+                }
+
+                // Add QR code objects to pivot system if enabled and pivot manager exists
+                if (autoAnchorQRObjects && pivotManager != null)
+                {
+                    pivotManager.AddObjectToAnchor(qrCodeObject);
                 }
             }
         }

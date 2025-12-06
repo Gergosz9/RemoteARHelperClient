@@ -20,4 +20,5 @@
   <uses-permission android:name="com.oculus.permission.USE_ANCHOR_API" />
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
   <uses-feature android:name="com.oculus.experimental.enabled" />
+  <uses-feature android:name="com.oculus.feature.BOUNDARYLESS_APP" android:required="true"/>
 </manifest>
