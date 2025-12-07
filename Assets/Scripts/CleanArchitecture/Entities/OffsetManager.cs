@@ -1,69 +1,57 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
+﻿using Assets.Scripts.CleanArchitecture.Gateways;
 using Meta.XR.MRUtilityKit;
+using System.Collections.Generic;
+using UnityEngine;
 
-namespace Assets.Scripts.QRTracking
+namespace Assets.Scripts.CleanArchitecture.Entities
 {
-    public class PivotManager : MonoBehaviour
+    internal class OffsetManager
     {
-        [SerializeField] private MRUK MRUtilityKit;
-        [SerializeField] private bool debugMode = true;
-        
+        private bool debugMode = true;
+
         private GameObject pivotObject;
         private bool anchorSet = false;
         private Vector3 firstQRPosition;
         private Quaternion firstQRRotation;
         private MRUKTrackable anchorQRCode;
-        
-        // List of objects that should be children of the pivot
-        [SerializeField] private List<GameObject> objectsToAnchor = new List<GameObject>();
-        
-        private void Start()
-        {
-            if (MRUtilityKit == null)
-            {
-                MRUtilityKit = FindFirstObjectByType<MRUK>();
-            }
 
-            // Subscribe to trackable events
-            if (MRUtilityKit != null)
-            {
-                MRUtilityKit.SceneSettings.TrackableAdded.AddListener(OnTrackableAdded);
-            }
-            else
-            {
-                Debug.LogError("PivotManager: MRUK not found!");
-            }
+        private List<GameObject> objectsToAnchor = new List<GameObject>();
+
+        private ITrackableGateway trackableGateway;
+
+        public OffsetManager(ITrackableGateway trackableGateway, bool debugMode = false)
+        {
+            this.trackableGateway = trackableGateway;
+            this.debugMode = debugMode;
+
+            this.trackableGateway.TrackableAdded().AddListener(OnTrackableAdded);
         }
-        
-        private void OnTrackableAdded(MRUKTrackable trackable)
+
+
+        private void OnTrackableAdded(object trackable)
         {
             // Only process QR codes and only if we haven't set an anchor yet
-            if (trackable.TrackableType == OVRAnchor.TrackableType.QRCode && !anchorSet)
+            if (!anchorSet && trackable is MRUKTrackable qrTrackable && qrTrackable.TrackableType == OVRAnchor.TrackableType.QRCode)
             {
-                SetFirstQRAsAnchor(trackable);
+                SetFirstQRAsAnchor(qrTrackable);
             }
         }
-        
+
         private void SetFirstQRAsAnchor(MRUKTrackable qrTrackable)
         {
             // Store the first QR code's position and rotation
             firstQRPosition = qrTrackable.transform.position;
             firstQRRotation = qrTrackable.transform.rotation;
             anchorQRCode = qrTrackable;
-            
+
             // Create the pivot object at world origin
             CreatePivotObject();
-            
+
             // Move existing objects to be children of the pivot
             AnchorExistingObjects();
-            
+
             anchorSet = true;
-            
+
             if (debugMode)
             {
                 Debug.Log($"PivotManager: First QR code detected at position {firstQRPosition}, creating anchor pivot at origin.");
@@ -71,20 +59,20 @@ namespace Assets.Scripts.QRTracking
                 Debug.Log($"PivotManager: Anchor QR code payload: {qrPayload}");
             }
         }
-        
+
         private void CreatePivotObject()
         {
             // Create pivot object at world origin (0,0,0)
             pivotObject = new GameObject("QR_Anchor_Pivot");
             pivotObject.transform.position = Vector3.zero;
             pivotObject.transform.rotation = Quaternion.identity;
-            
+
             // Calculate offset from QR to world origin
             Vector3 offsetFromQRToOrigin = Vector3.zero - firstQRPosition;
-            
+
             // Apply this offset to the pivot so that when QR moves, world objects stay in place
             pivotObject.transform.position = offsetFromQRToOrigin;
-            
+
             if (debugMode)
             {
                 // Add a visual indicator for debugging
@@ -93,23 +81,23 @@ namespace Assets.Scripts.QRTracking
                 debugSphere.transform.parent = pivotObject.transform;
                 debugSphere.transform.localPosition = Vector3.zero;
                 debugSphere.transform.localScale = Vector3.one * 0.1f;
-                
+
                 // Make it visible and colored
                 Renderer renderer = debugSphere.GetComponent<Renderer>();
                 if (renderer != null)
                 {
                     renderer.material.color = Color.red;
                 }
-                
+
                 // Remove collider as it's just for debugging
                 Collider collider = debugSphere.GetComponent<Collider>();
                 if (collider != null)
                 {
-                    Destroy(collider);
+                    Object.Destroy(collider);
                 }
             }
         }
-        
+
         private void AnchorExistingObjects()
         {
             // Move specified objects to be children of the pivot
@@ -125,25 +113,25 @@ namespace Assets.Scripts.QRTracking
                 }
             }
         }
-        
-        private void Update()
+
+        public void UpdatePivot()
         {
-            // Continuously adjust pivot position based on QR movement
+            // Adjust pivot position based on QR movement
             if (anchorSet && anchorQRCode != null && pivotObject != null)
             {
                 // Calculate how much the QR has moved from its original position
                 Vector3 qrMovement = anchorQRCode.transform.position - firstQRPosition;
-                
+
                 // Apply inverse movement to pivot to keep world objects stable
                 Vector3 offsetFromQRToOrigin = Vector3.zero - firstQRPosition;
                 pivotObject.transform.position = offsetFromQRToOrigin - qrMovement;
-                
+
                 // Optionally handle rotation drift as well
                 Quaternion qrRotationDrift = anchorQRCode.transform.rotation * Quaternion.Inverse(firstQRRotation);
                 pivotObject.transform.rotation = Quaternion.Inverse(qrRotationDrift);
             }
         }
-        
+
         /// <summary>
         /// Add an object to be anchored to the pivot system
         /// </summary>
@@ -153,7 +141,7 @@ namespace Assets.Scripts.QRTracking
             if (obj != null && !objectsToAnchor.Contains(obj))
             {
                 objectsToAnchor.Add(obj);
-                
+
                 // If pivot is already created, immediately anchor this object
                 if (anchorSet && pivotObject != null)
                 {
@@ -165,7 +153,7 @@ namespace Assets.Scripts.QRTracking
                 }
             }
         }
-        
+
         /// <summary>
         /// Remove an object from the pivot system
         /// </summary>
@@ -176,14 +164,14 @@ namespace Assets.Scripts.QRTracking
             {
                 objectsToAnchor.Remove(obj);
                 obj.transform.SetParent(null, true);
-                
+
                 if (debugMode)
                 {
                     Debug.Log($"PivotManager: Removed object '{obj.name}' from pivot anchor.");
                 }
             }
         }
-        
+
         /// <summary>
         /// Reset the anchor system (useful for testing)
         /// </summary>
@@ -196,20 +184,20 @@ namespace Assets.Scripts.QRTracking
                 {
                     pivotObject.transform.GetChild(0).SetParent(null, true);
                 }
-                
-                Destroy(pivotObject);
+
+                Object.Destroy(pivotObject);
             }
-            
+
             anchorSet = false;
             anchorQRCode = null;
             pivotObject = null;
-            
+
             if (debugMode)
             {
                 Debug.Log("PivotManager: Anchor system reset.");
             }
         }
-        
+
         /// <summary>
         /// Get the current pivot object (null if not set)
         /// </summary>
@@ -217,7 +205,7 @@ namespace Assets.Scripts.QRTracking
         {
             return pivotObject;
         }
-        
+
         /// <summary>
         /// Check if the anchor has been set
         /// </summary>
