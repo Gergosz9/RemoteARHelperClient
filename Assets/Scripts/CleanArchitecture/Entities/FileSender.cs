@@ -27,16 +27,15 @@ namespace Assets.Scripts.CleanArchitecture.Entities
         public FileSender(RoomMeshExporter meshExporter, bool sendAfterExport = false)
         {
             _meshExporter = meshExporter;
-            _meshExporter.OnExportCompleted.AddListener(SendMesh);
+            if (sendAfterExport ) {
+                _meshExporter.OnExportCompleted.AddListener(SendMesh);
+            }
             this.sendAfterExport = sendAfterExport;
         }
 
         public void SendMesh()
         {
-            if (sendAfterExport)
-            {
-                SendFileToAll(_meshExporter.GetExportedFilePath());
-            }
+            SendFileToAll(_meshExporter.GetExportedFilePath());
         }
 
         public void SendFileToAll(string filePath)
