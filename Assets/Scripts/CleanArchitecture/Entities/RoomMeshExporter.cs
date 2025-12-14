@@ -93,12 +93,11 @@ namespace Assets.Scripts.CleanArchitecture.Entities
 
             obj.AppendLine($"o RoomMesh");
 
-            // Write vertices (transform to world space and flip Z for OBJ format)
+            // Write vertices (transform to world space for OBJ format)
             foreach (var vertex in mesh.vertices)
             {
                 Vector3 worldVertex = meshTransform.TransformPoint(vertex);
-                // Flip Z-axis to convert from Unity's left-handed to OBJ's right-handed coordinate system
-                obj.AppendLine($"v {worldVertex.x:F6} {worldVertex.y:F6} {-worldVertex.z:F6}");
+                obj.AppendLine($"v {worldVertex.x:F6} {worldVertex.y:F6} {worldVertex.z:F6}");
             }
 
             // Write normals (transform to world space and flip Z)
@@ -107,8 +106,7 @@ namespace Assets.Scripts.CleanArchitecture.Entities
                 foreach (var normal in mesh.normals)
                 {
                     Vector3 worldNormal = meshTransform.TransformDirection(normal).normalized;
-                    // Flip Z-axis for normals as well
-                    obj.AppendLine($"vn {worldNormal.x:F6} {worldNormal.y:F6} {-worldNormal.z:F6}");
+                    obj.AppendLine($"vn {worldNormal.x:F6} {worldNormal.y:F6} {worldNormal.z:F6}");
                 }
             }
 
@@ -131,15 +129,15 @@ namespace Assets.Scripts.CleanArchitecture.Entities
                 // Reverse triangle winding order (v1, v3, v2 instead of v1, v2, v3)
                 if (mesh.normals.Length > 0 && mesh.uv.Length > 0)
                 {
-                    obj.AppendLine($"f {v1}/{v1}/{v1} {v3}/{v3}/{v3} {v2}/{v2}/{v2}");
+                    obj.AppendLine($"f {v1}/{v1}/{v1} {v2}/{v2}/{v2} {v3}/{v3}/{v3}");
                 }
                 else if (mesh.normals.Length > 0)
                 {
-                    obj.AppendLine($"f {v1}//{v1} {v3}//{v3} {v2}//{v2}");
+                    obj.AppendLine($"f {v1}//{v1} {v2}//{v2} {v3}//{v3}");
                 }
                 else
                 {
-                    obj.AppendLine($"f {v1} {v3} {v2}");
+                    obj.AppendLine($"f {v1} {v2} {v3}");
                 }
             }
 
